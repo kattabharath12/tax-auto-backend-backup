@@ -22,30 +22,93 @@ except Exception as e:
     print(f"Database setup error: {e}")
 
 app = FastAPI(
-    title="Tax Auto-Fill API",
+    title="Tax Auto-Fill API - Backup",
     description="API for tax document upload, extraction, and filing",
     version="1.0.0"
 )
 
-# Enhanced CORS setup - INCLUDES BACKUP FRONTEND
+# COMPREHENSIVE CORS SETUP - VERY PERMISSIVE FOR BACKUP
+print("🔧 Setting up CORS for backup system...")
+
+# Allow all Railway domains and localhost
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001", 
+    "https://tax-auto-frontend-production.up.railway.app",
+    "https://tax-auto-frontend-backup-production.up.railway.app",
+    "https://tax-auto-backend-production.up.railway.app",
+    "https://tax-auto-backend-backup-production.up.railway.app",
+]
+
+# Add wildcard Railway patterns
+allowed_origins.extend([
+    "https://*.railway.app",
+    "https://*.up.railway.app",
+    "https://tax-auto-frontend-backup-production.up.railway.app",  # Explicit backup frontend
+])
+
+print(f"✅ CORS allowed origins: {allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "https://tax-auto-frontend-production.up.railway.app",
-        "https://tax-auto-frontend-backup-production.up.railway.app",  # ADD THIS LINE
-        "https://*.railway.app",
-        "https://*.up.railway.app"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "*",
+        "Accept",
+        "Accept-Language", 
+        "Content-Language",
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Origin",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers",
+    ],
+    expose_headers=["*"],
 )
 
-# Health check
+# Additional manual CORS handling for problematic requests
+@app.middleware("http")
+async def cors_handler(request: Request, call_next):
+    # Handle preflight requests manually
+    if request.method == "OPTIONS":
+        response = JSONResponse({"message": "OK"})
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+    
+    # Process the request
+    response = await call_next(request)
+    
+    # Add CORS headers to all responses
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true" 
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
+
+# Health check with CORS info
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "message": "Tax API is running"}
+    return {
+        "status": "healthy", 
+        "message": "Tax API Backup is running",
+        "cors_info": "CORS configured for backup frontend"
+    }
+
+# CORS test endpoint
+@app.get("/cors-test")
+async def cors_test():
+    return {
+        "message": "CORS test successful",
+        "backend": "backup",
+        "timestamp": "2025-07-26"
+    }
 
 # Global exception handler
 @app.exception_handler(Exception)
@@ -73,3 +136,4 @@ app.include_router(payment_routes.router, prefix="/api/payments", tags=["payment
 app.include_router(admin_routes.router, prefix="/api/admin", tags=["admin"])
 
 print("All routes included successfully!")
+print("🚀 Backup API server ready with comprehensive CORS support")
