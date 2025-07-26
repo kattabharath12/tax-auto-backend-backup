@@ -33,6 +33,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "https://tax-auto-frontend-production.up.railway.app",
+        "https://tax-auto-backend-backup-production.up.railway.app",
         "https://*.railway.app",
         "https://*.up.railway.app"
     ],
