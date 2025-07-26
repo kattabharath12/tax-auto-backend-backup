@@ -27,12 +27,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enhanced CORS setup
+# Enhanced CORS setup - INCLUDES BACKUP FRONTEND
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "https://tax-auto-frontend-production.up.railway.app",
+        "https://tax-auto-frontend-backup-production.up.railway.app",  # ADD THIS LINE
         "https://*.railway.app",
         "https://*.up.railway.app"
     ],
