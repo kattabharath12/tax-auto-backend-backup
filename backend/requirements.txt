@@ -1,0 +1,21 @@
+fastapi
+uvicorn
+python-multipart
+sqlalchemy
+pydantic
+passlib[bcrypt]
+python-jose
+python-dotenv
+requests
+psycopg2-binary
+
+# OCR and Document Processing
+pytesseract
+Pillow
+PyPDF2
+pdf2image
+opencv-python
+numpy
+
+# Optional: For better PDF processing
+pdfplumber
