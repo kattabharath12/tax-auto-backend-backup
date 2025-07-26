@@ -62,12 +62,12 @@ RUN tesseract --version && \
     echo "TESSDATA_PREFIX: $TESSDATA_PREFIX" && \
     ls -la $TESSDATA_PREFIX
 
-# Expose port
+# Expose port - Railway will override this with dynamic port
 EXPOSE 8000
 
-# Health check
+# Health check - updated to use dynamic port
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
-# Start the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start the application with dynamic port support
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
