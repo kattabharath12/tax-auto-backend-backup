@@ -18,11 +18,6 @@ RUN apt-get update && apt-get install -y \
     libxi6 \
     libxrandr2 \
     libasound2 \
-    libgthread-2.0-0 \
-    libgtk-3-0 \
-    libavcodec58 \
-    libavformat58 \
-    libswscale5 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -52,22 +47,18 @@ ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata/
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
-# Additional OpenCV environment variables
-ENV OPENCV_VIDEOIO_PRIORITY_MSMF=0
-ENV QT_X11_NO_MITSHM=1
-
 # Verify Tesseract installation and language data
 RUN tesseract --version && \
     tesseract --list-langs && \
     echo "TESSDATA_PREFIX: $TESSDATA_PREFIX" && \
     ls -la $TESSDATA_PREFIX
 
-# Expose port - Railway will override this with dynamic port
+# Expose port
 EXPOSE 8000
 
-# Health check - updated to use dynamic port
+# Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
-# Start the application with dynamic port support
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+# Start the application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
