@@ -27,86 +27,64 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# COMPREHENSIVE CORS SETUP - VERY PERMISSIVE FOR BACKUP
-print("🔧 Setting up CORS for backup system...")
-
-# Allow all Railway domains and localhost
-allowed_origins = [
-    "http://localhost:3000",
-    "http://localhost:3001", 
-    "https://tax-auto-frontend-production.up.railway.app",
-    "https://tax-auto-frontend-backup-production.up.railway.app",
-    "https://tax-auto-backend-production.up.railway.app",
-    "https://tax-auto-backend-backup-production.up.railway.app",
-]
-
-# Add wildcard Railway patterns
-allowed_origins.extend([
-    "https://*.railway.app",
-    "https://*.up.railway.app",
-    "https://tax-auto-frontend-backup-production.up.railway.app",  # Explicit backup frontend
-])
-
-print(f"✅ CORS allowed origins: {allowed_origins}")
+# ULTRA-PERMISSIVE CORS - GUARANTEED TO WORK
+print("🔧 Setting up ULTRA-PERMISSIVE CORS...")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=["*"],  # Allow ALL origins
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=[
-        "*",
-        "Accept",
-        "Accept-Language", 
-        "Content-Language",
-        "Content-Type",
-        "Authorization",
-        "X-Requested-With",
-        "Origin",
-        "Access-Control-Request-Method",
-        "Access-Control-Request-Headers",
-    ],
-    expose_headers=["*"],
+    allow_methods=["*"],  # Allow ALL methods
+    allow_headers=["*"],  # Allow ALL headers
+    expose_headers=["*"]  # Expose ALL headers
 )
 
-# Additional manual CORS handling for problematic requests
+print("✅ CORS configured with wildcard permissions")
+
+# Manual CORS headers for extra safety
 @app.middleware("http")
-async def cors_handler(request: Request, call_next):
-    # Handle preflight requests manually
-    if request.method == "OPTIONS":
-        response = JSONResponse({"message": "OK"})
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        return response
-    
-    # Process the request
+async def add_cors_header(request: Request, call_next):
     response = await call_next(request)
     
-    # Add CORS headers to all responses
+    # Add explicit CORS headers to every response
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Credentials"] = "true" 
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH"
     response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Expose-Headers"] = "*"
+    response.headers["Access-Control-Max-Age"] = "3600"
     
     return response
 
-# Health check with CORS info
+# Handle OPTIONS requests explicitly
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(request: Request, rest_of_path: str):
+    response = JSONResponse({"message": "OK"})
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
+
+# Health check with CORS confirmation
 @app.get("/health")
 async def health_check():
     return {
         "status": "healthy", 
         "message": "Tax API Backup is running",
-        "cors_info": "CORS configured for backup frontend"
+        "cors_status": "ULTRA-PERMISSIVE ENABLED",
+        "timestamp": "2025-07-26"
     }
 
 # CORS test endpoint
 @app.get("/cors-test")
-async def cors_test():
+async def cors_test(request: Request):
+    origin = request.headers.get("origin", "no-origin")
     return {
         "message": "CORS test successful",
         "backend": "backup",
+        "origin_received": origin,
+        "cors_enabled": True,
         "timestamp": "2025-07-26"
     }
 
@@ -117,15 +95,23 @@ async def global_exception_handler(request: Request, exc: Exception):
     print(traceback.format_exc())
     
     if isinstance(exc, HTTPException):
-        return JSONResponse(
+        response = JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail}
         )
+    else:
+        response = JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"}
+        )
     
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Internal server error"}
-    )
+    # Add CORS headers to error responses too
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    
+    return response
 
 # Include routers
 app.include_router(auth_routes.router, prefix="/api/auth", tags=["auth"])
@@ -136,4 +122,5 @@ app.include_router(payment_routes.router, prefix="/api/payments", tags=["payment
 app.include_router(admin_routes.router, prefix="/api/admin", tags=["admin"])
 
 print("All routes included successfully!")
-print("🚀 Backup API server ready with comprehensive CORS support")
+print("🚀 Backup API server ready with ULTRA-PERMISSIVE CORS support")
+print("🔥 CORS will work with ANY frontend domain")
