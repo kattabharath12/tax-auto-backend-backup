@@ -18,6 +18,11 @@ RUN apt-get update && apt-get install -y \
     libxi6 \
     libxrandr2 \
     libasound2 \
+    libgthread-2.0-0 \
+    libgtk-3-0 \
+    libavcodec58 \
+    libavformat58 \
+    libswscale5 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -46,6 +51,10 @@ RUN chmod 755 uploads
 ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata/
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
+
+# Additional OpenCV environment variables
+ENV OPENCV_VIDEOIO_PRIORITY_MSMF=0
+ENV QT_X11_NO_MITSHM=1
 
 # Verify Tesseract installation and language data
 RUN tesseract --version && \
