@@ -4,6 +4,7 @@ FROM python:3.10-slim
 RUN apt-get update && apt-get install -y \
     tesseract-ocr \
     tesseract-ocr-eng \
+    tesseract-ocr-osd \
     poppler-utils \
     libgl1-mesa-glx \
     libglib2.0-0 \
@@ -11,7 +12,6 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     libgomp1 \
-    libglib2.0-0 \
     libfontconfig1 \
     libxrender1 \
     libxtst6 \
@@ -19,15 +19,23 @@ RUN apt-get update && apt-get install -y \
     libxrandr2 \
     libasound2 \
     curl \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Fix Tesseract language data path issues
+# Explicitly set Tesseract data directory and verify installation
+ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata/
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
+# Download additional language data if needed
 RUN mkdir -p /usr/share/tesseract-ocr/4.00/tessdata/ && \
-    mkdir -p /usr/share/tessdata/ && \
-    find /usr -name "*.traineddata" -exec cp {} /usr/share/tesseract-ocr/4.00/tessdata/ \; && \
-    find /usr -name "*.traineddata" -exec cp {} /usr/share/tessdata/ \; && \
-    ls -la /usr/share/tesseract-ocr/4.00/tessdata/ && \
-    ls -la /usr/share/tessdata/
+    wget -O /usr/share/tesseract-ocr/4.00/tessdata/osd.traineddata \
+    https://github.com/tesseract-ocr/tessdata/raw/main/osd.traineddata || true
+
+# Verify Tesseract installation
+RUN tesseract --version && \
+    tesseract --list-langs && \
+    ls -la /usr/share/tesseract-ocr/4.00/tessdata/
 
 WORKDIR /app
 
@@ -42,16 +50,34 @@ COPY . .
 RUN mkdir -p uploads
 RUN chmod 755 uploads
 
-# Set environment variables for better OCR performance and fix tessdata path
-ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata/
-ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8
+# Test OCR functionality during build
+RUN python -c "
+import sys
+try:
+    import pytesseract
+    from PIL import Image
+    import PyPDF2
+    from pdf2image import convert_from_path
+    import cv2
+    import numpy as np
+    print('✅ All OCR libraries imported successfully')
+    
+    # Test tesseract executable
+    result = pytesseract.get_tesseract_version()
+    print(f'✅ Tesseract version: {result}')
+    
+    # Set OCR_AVAILABLE to True in environment
+    import os
+    os.environ['FORCE_OCR_AVAILABLE'] = 'true'
+    print('✅ OCR forced to available mode')
+    
+except Exception as e:
+    print(f'❌ OCR setup failed: {e}')
+    sys.exit(1)
+"
 
-# Verify Tesseract installation and language data
-RUN tesseract --version && \
-    tesseract --list-langs && \
-    echo "TESSDATA_PREFIX: $TESSDATA_PREFIX" && \
-    ls -la $TESSDATA_PREFIX
+# Set environment variable to force OCR availability
+ENV FORCE_OCR_AVAILABLE=true
 
 # Expose port
 EXPOSE 8000
