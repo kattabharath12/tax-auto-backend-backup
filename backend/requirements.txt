@@ -14,7 +14,7 @@ pytesseract
 Pillow
 PyPDF2
 pdf2image
-opencv-python
+opencv-python-headless
 numpy
 
 # Optional: For better PDF processing
